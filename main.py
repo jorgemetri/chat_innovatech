@@ -5,18 +5,18 @@ from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials # Ou gspread.service_account para gspread >= 5.0.0
 
-# --- Configurações do Google Sheets ---
-SERVICE_ACCOUNT_FILE = "ardent-curve-460514-b2-b8cde525c0dc.json"
-SPREADSHEET_TITLE = "BaseDadosChat"  # USAR O TÍTULO, JÁ QUE open_by_id NÃO FUNCIONOU NO SEU TESTE
-# SPREADSHEET_ID = "1cUTbptS5QzFNMC3ClFIkupeyyxAfLIJ8HGkPSMCUq3Q" # ID para referência, mas abriremos por título
+# --- INÍCIO DAS CONFIGURAÇÕES DO GOOGLE SHEETS (COPIE SUAS CONSTANTES AQUI) ---
+SERVICE_ACCOUNT_FILE = "ardent-curve-460514-b2-d89c379c10cf.json"
+SPREADSHEET_TITLE = "BaseDadosChat" # Confirmado que funciona com client.open()
 WORKSHEET_IDENTIFIER = "Página1" 
-
 SCOPES = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive",
 ]
+# --- FIM DAS CONFIGURAÇÕES DO GOOGLE SHEETS ---
 
-# --- Funções para Google Sheets ---
+
+# --- INÍCIO DAS FUNÇÕES DO GOOGLE SHEETS (COPIE SUAS FUNÇÕES AQUI) ---
 @st.cache_resource 
 def get_gspread_client():
     try:
@@ -34,12 +34,11 @@ def get_gspread_client():
         return None
 
 @st.cache_resource 
-def get_worksheet_cached(_client, spreadsheet_title, worksheet_identifier): # Mudado para spreadsheet_title
+def get_worksheet_cached(_client, spreadsheet_title, worksheet_identifier):
     if not st.session_state.get('gspread_client_initialized', False) or _client is None:
         return None
     try:
-        spreadsheet = _client.open(spreadsheet_title) # Abrir pelo título
-        
+        spreadsheet = _client.open(spreadsheet_title) # Usar open() pelo título
         if isinstance(worksheet_identifier, int):
             worksheet = spreadsheet.get_worksheet(worksheet_identifier)
         else:
@@ -69,6 +68,8 @@ def append_data_to_sheet(worksheet, data_row):
     except Exception as e:
         st.error(f"⚠️ Erro ao enviar dados para a planilha: {e}")
         return False
+# --- FIM DAS FUNÇÕES DO GOOGLE SHEETS ---
+
 
 # --- Título da Página e Configuração ---
 PAGE_TITLE = "Canal de Comunicação Operacional"
@@ -103,6 +104,7 @@ Este é um espaço seguro e confidencial para que todas as vozes sejam ouvidas.
 Para denúncias (assédio, corrupção, etc.), utilize nosso canal de denúncias exclusivo: 📲 `QRcode XXXXXXXXXXXXXX`.
 """
 
+# --- INÍCIO DO QUESTIONS_DATA (COPIE SEU QUESTIONS_DATA ORIGINAL E COMPLETO AQUI) ---
 QUESTIONS_DATA = [
     {"text": "1 - Como você se identifica / Você é:", "options": ["Colaborador Interno - Colpar; RM ou Greenplac", "Colaborador externo - Prestador de Serviço", "Morador Comunidade", "Poder Público"], "key_prefix": "q1_identificacao", 'input_type': 'radio'},
     {"text": "1.1 (Colaborador) - Qual é a sua empresa?", "key_prefix": "c_q1_1_empresa", 'input_type': 'text', "condition": {"depends_on_key": "q1_identificacao", "not_expected_values": ["Morador Comunidade", "Poder Público"]}},
@@ -132,12 +134,13 @@ QUESTIONS_DATA = [
     {"text": "S3.3 - Como você identifica a empresa ou o fato relacionado à empresa?", "options": ["Adesivo Veículo","Outra pessoa me informou","Conheço o colaborador","Presenciei o fato","Outro"], "key_prefix": "s_q3_3_identifica_empresa", 'input_type': 'radio', "condition": {"depends_on_key": "q1_identificacao", "expected_values": ["Morador Comunidade", "Poder Público"]}},
     {"text": "S3.3.1 - Se Outro modo de identificação, por favor especifique:", "key_prefix": "s_q3_3_1_identifica_outro", 'input_type': 'text', "condition": {"depends_on_key": "s_q3_3_identifica_empresa", "expected_value": "Outro"}},
 ]
+# --- FIM DO QUESTIONS_DATA ---
 
 FINAL_PROMPT_TEXT = "✅ Pesquisa quase concluída! Você deseja enviar suas respostas?"
-TYPING_SPEED = 0.06 
+TYPING_SPEED = 0.02 
 CURSOR_HTML = '<span class="typing-cursor"></span>'
 
-# --- Funções Auxiliares ---
+# --- INÍCIO DAS FUNÇÕES AUXILIARES DO CHATBOT (COPIE AS SUAS AQUI) ---
 def initialize_state():
     default_values = {"messages": [], "current_question_index": 0, "answers": {}, "stage": "greeting", "widget_key_suffix": 0}
     for key, value in default_values.items():
@@ -185,13 +188,15 @@ def check_and_skip_question():
             st.session_state.current_question_index += 1
         else: return False 
     return True 
-# --- Inicialização e Exibição do Histórico ---
+# --- FIM DAS FUNÇÕES AUXILIARES DO CHATBOT ---
+
+
+# --- INÍCIO DA LÓGICA PRINCIPAL DO STREAMLIT (COPIE O RESTANTE DO SEU CÓDIGO AQUI) ---
 initialize_state()
 for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar="🤖" if message["role"] == "assistant" else "👤"):
         st.markdown(message["content"], unsafe_allow_html=True)
 
-# --- Lógica Principal do Chat por Estágio ---
 if st.session_state.stage == "greeting":
     if not st.session_state.messages: type_assistant_message(GREETING_MESSAGE)
     if QUESTIONS_DATA: st.session_state.stage = "questioning"; st.rerun()
@@ -278,7 +283,6 @@ elif st.session_state.stage == "final_prompt":
                     gspread_client = get_gspread_client()
                     worksheet = None 
                     if gspread_client: 
-                        # USANDO SPREADSHEET_TITLE PARA ABRIR, CONFORME TESTE
                         worksheet = get_worksheet_cached(gspread_client, SPREADSHEET_TITLE, WORKSHEET_IDENTIFIER) 
                     
                     sheet_update_successful = False
@@ -326,3 +330,4 @@ elif st.session_state.stage == "finished":
     st.markdown("---") 
     if st.button("🔄 Iniciar Nova Comunicação", key=f"restart_btn_{st.session_state.widget_key_suffix}"): 
         reset_chat()
+# --- FIM DA LÓGICA PRINCIPAL DO STREAMLIT ---

@@ -3,7 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials # Ou gspread.
 from datetime import datetime
 
 # --- Configurações do Google Sheets ---
-SERVICE_ACCOUNT_FILE = "ardent-curve-460514-b2-b8cde525c0dc.json"
+SERVICE_ACCOUNT_FILE = "ardent-curve-460514-b2-d89c379c10cf.json"
 # Tente primeiro com open_by_id se você atualizar o gspread.
 # Se não, use SPREADSHEET_TITLE.
 SPREADSHEET_ID = "1cUTbptS5QzFNMC3ClFIkupeyyxAfLIJ8HGkPSMCUq3Q" # Mantenha o ID
