@@ -4,10 +4,11 @@ import json
 from datetime import datetime
 
 # --- Título da Página e Configuração ---
-TITLE = "Chatbot de Pesquisa - Colpar Brasil"
+TITLE = "Canal e Comunicação Operacional"
+
 st.set_page_config(page_title=TITLE)
 st.title(TITLE)
-
+st.header("Grupo de Certificação Floreslta Colpar Brasil")
 # --- Constantes ---
 GREETING_MESSAGE = """
 Meu nome é Colpi, assitente virtual do Grupo de Certificação Floretal Colpar Brasil, um espaço seguro para que todas as vozes sejam ouvidas.
@@ -15,7 +16,6 @@ Meu nome é Colpi, assitente virtual do Grupo de Certificação Floretal Colpar 
 Antes de começarmos, preciso informar uma coisa importante, este canal é exclusivo para tratar de assuntos operacionais e do dia-a-dia. Caso tenha queira fazer uma denúncia de assédio ou violência sexual, do trabalho, corrupção ou outro tema delicado, temos um canal exclusivo, através de QRcode XXXXXXXXXXXXXX.
 """
 
-# QUESTIONS_DATA REVISADO (COMO DEFINIDO ACIMA)
 QUESTIONS_DATA = [
     # PERGUNTA INICIAL DE BIFURCAÇÃO
     {"text": "1 - Como você se identifica / Você é:",
@@ -26,7 +26,7 @@ QUESTIONS_DATA = [
     {"text": "1.1 (Colaborador) - Qual é a sua empresa?",
      "key_prefix": "c_q1_1_empresa", 'input_type': 'text',
      "condition": {"depends_on_key": "q1_identificacao",
-                   "not_expected_values": ["Morador Comunidade", "Poder Público"]} # Só aparece se NÃO FOR Morador ou Poder Público
+                   "not_expected_values": ["Morador Comunidade", "Poder Público"]}
     },
     {"text": "1.2 (Colaborador) Em qual setor você atua?",
      "options": ["Silvicultura", "Colheita", "Administrativo", "Outro"],
@@ -53,12 +53,13 @@ QUESTIONS_DATA = [
     {"text": "2.2 (Colaborador) Você quer receber o retorno do seu comunicado?",
      "options": ["Sim", "Não"],
      "key_prefix": "c_q2_2_retorno", 'input_type': 'radio',
-      "condition": {"depends_on_key": "q1_identificacao",
+      "condition": {"depends_on_key": "q1_identificacao", # Mantém a condição geral do fluxo
                    "not_expected_values": ["Morador Comunidade", "Poder Público"]}
     },
     {"text": "2.3 (Colaborador) Me informe o seu contato (WhatsApp ou E-mail):",
      "key_prefix": "c_q2_3_contato", 'input_type': 'text',
-     "condition": {"depends_on_key": "c_q2_2_retorno", "expected_value": "Sim"}
+     # Esta condição já funciona: se c_q2_2_retorno for "Não" ou não for perguntado, esta será pulada.
+     "condition": {"depends_on_key": "c_q2_2_retorno", "expected_value": "Sim"} 
     },
     {"text": "3 (Colaborador) O que você gostaria de comunicar?",
      "options": ["Reclamação", "Sugestão", "Elogio", "Engajamento", "Dúvida"],
@@ -106,10 +107,14 @@ QUESTIONS_DATA = [
     {"text": "S2.2 - Você quer receber retorno do seu comunicado?",
      "options": ["Sim","Não"],
      "key_prefix": "s_q2_2_retorno", 'input_type': 'radio',
-     "condition": {"depends_on_key": "q1_identificacao", "expected_values": ["Morador Comunidade", "Poder Público"]}
+     # MODIFICAÇÃO AQUI: Esta pergunta só faz sentido se o usuário permitiu informar dados pessoais (nome ou contato)
+     # A condição mais forte é se ele disse "Sim" para informar nome. Se disse "Não", não perguntamos sobre retorno.
+     "condition": {"depends_on_key": "s_q2_informar_nome", "expected_value": "Sim"}
     },
     {"text": "S2.3 - Me informe seu contato (WhatsApp ou E-mail):",
      "key_prefix": "s_q2_3_contato", 'input_type': 'text', 
+     # Esta condição está correta: só pergunta o contato se ele quis receber retorno.
+     # E, pela condição anterior, só chega aqui se ele também quis informar o nome.
      "condition": {"depends_on_key": "s_q2_2_retorno", "expected_value": "Sim"}
     },
     {"text": "S3. - O que você gostaria de comunicar?",
@@ -174,7 +179,7 @@ def initialize_state():
 def reset_chat():
     st.session_state.messages = []
     st.session_state.current_question_index = 0
-    st.session_state.answers = {} # Limpa respostas antigas
+    st.session_state.answers = {} 
     st.session_state.stage = "greeting"
     st.session_state.widget_key_suffix += 1
     st.rerun()
@@ -211,18 +216,16 @@ def check_and_skip_question():
                 elif "expected_values" in cond: 
                     if previous_answer not in cond["expected_values"]:
                         should_skip = True
-                elif "not_expected_value" in cond: # Pular se FOR o valor não esperado
+                elif "not_expected_value" in cond: 
                     if previous_answer == cond["not_expected_value"]:
                         should_skip = True
-                elif "not_expected_values" in cond: # Pular se for QUALQUER UM dos valores não esperados
+                elif "not_expected_values" in cond: 
                     if previous_answer in cond["not_expected_values"]:
                         should_skip = True
         
         if should_skip:
-            # Garante que não estamos sobrescrevendo uma resposta se esta pergunta já foi respondida
-            # (útil se a lógica de pular for complexa e uma pergunta puder ser "visitada" teoricamente mais de uma vez)
             if question_info["key_prefix"] not in st.session_state.answers or \
-               st.session_state.answers[question_info["key_prefix"]] == "Não respondida": # Evitar sobrescrever respostas válidas
+               st.session_state.answers[question_info["key_prefix"]] == "Não respondida":
                  st.session_state.answers[question_info["key_prefix"]] = "Não Aplicável (pulada)"
             st.session_state.current_question_index += 1
         else:
@@ -345,13 +348,10 @@ elif st.session_state.stage == "final_prompt":
                 for q_data in QUESTIONS_DATA: 
                     question_text = q_data['text']
                     answer = st.session_state.answers.get(q_data["key_prefix"], "Não respondida")
-                    # Só adiciona ao resultado se a resposta não for "Não Aplicável (pulada)"
-                    # ou se você quiser ver explicitamente as perguntas puladas.
-                    # Para este exemplo, vamos mostrar tudo.
                     survey_results_obj[question_text] = answer
-                    if answer != "Não Aplicável (pulada)": # Opcional: não mostrar puladas no chat
+                    if answer != "Não Aplicável (pulada)": 
                         results_display_str_parts.append(f"- **{question_text}**: {answer}")
-                    elif st.session_state.answers.get(q_data["key_prefix"]): # Mostrar puladas no JSON
+                    elif st.session_state.answers.get(q_data["key_prefix"]): 
                          results_display_str_parts.append(f"- **{question_text}**: {answer}")
 
 
