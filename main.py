@@ -137,7 +137,7 @@ QUESTIONS_DATA = [
 # --- FIM DO QUESTIONS_DATA ---
 
 FINAL_PROMPT_TEXT = "✅ Pesquisa quase concluída! Você deseja enviar suas respostas?"
-TYPING_SPEED = 0.02 
+TYPING_SPEED = 0.06
 CURSOR_HTML = '<span class="typing-cursor"></span>'
 
 # --- INÍCIO DAS FUNÇÕES AUXILIARES DO CHATBOT (COPIE AS SUAS AQUI) ---
