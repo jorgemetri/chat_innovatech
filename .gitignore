@@ -1,0 +1,30 @@
+# Credenciais do Google Cloud Service Account
+ardent-curve-460514-b2-b8cde525c0dc.json
+
+# Arquivos de ambiente virtual Python
+venv/
+*.venv/
+env/
+*.env/
+ENV/
+
+# Arquivos compilados do Python
+*.pyc
+__pycache__/
+
+# Arquivos de configuração de IDEs (exemplos)
+.vscode/
+.idea/
+*.DS_Store
+
+# Arquivos de log
+*.log
+
+# Arquivos de build/distribuição do Python (se aplicável)
+build/
+dist/
+*.egg-info/
+
+# Arquivos de dependências do Streamlit (se você usar st.secrets localmente de forma não segura)
+# .streamlit/secrets.toml # CUIDADO: Se você usa st.secrets para produção, este NÃO deve ser ignorado.
+                          # Se for apenas para teste local e contiver chaves reais, ignore.
